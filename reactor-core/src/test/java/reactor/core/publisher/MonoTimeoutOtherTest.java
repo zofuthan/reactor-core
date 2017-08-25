@@ -22,7 +22,7 @@ import org.junit.Test;
 import reactor.test.StepVerifier;
 import reactor.test.subscriber.AssertSubscriber;
 
-public class MonoTimeoutTest {
+public class MonoTimeoutOtherTest {
 
 	@Test
 	public void noTimeout() {
@@ -87,7 +87,7 @@ public class MonoTimeoutTest {
 
 
 	Mono<Integer> scenario_timeoutCanBeBoundWithCallback() {
-		return Mono.<Integer>never().timeout(Duration.ofMillis(500), Mono.just(-5));
+		return Mono.<Integer>never().timeout(Mono.delay(Duration.ofMillis(500)), Mono.just(-5));
 	}
 
 	@Test
@@ -113,7 +113,7 @@ public class MonoTimeoutTest {
 
 	Mono<?> scenario_timeoutThrown() {
 		return Mono.never()
-		           .timeout(Duration.ofMillis(500));
+		           .timeout(Mono.delay(Duration.ofMillis(500)));
 	}
 
 	@Test

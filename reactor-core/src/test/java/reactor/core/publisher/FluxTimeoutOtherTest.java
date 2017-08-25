@@ -19,13 +19,26 @@ package reactor.core.publisher;
 import java.time.Duration;
 import java.util.concurrent.TimeoutException;
 
+import org.junit.AfterClass;
 import org.junit.Assert;
+import org.junit.BeforeClass;
 import org.junit.Test;
+import reactor.core.scheduler.Scheduler;
 import reactor.core.scheduler.Schedulers;
 import reactor.test.StepVerifier;
 import reactor.test.subscriber.AssertSubscriber;
 
-public class FluxTimeoutTest {
+public class FluxTimeoutOtherTest {
+
+	@BeforeClass
+	public static void beforeClass() {
+		StepVerifier.setDefaultTimeout(Duration.ofSeconds(4));
+	}
+
+	@AfterClass
+	public static void afterClass() {
+		StepVerifier.resetDefaultTimeout();
+	}
 
 	@Test
 	public void noTimeout() {
@@ -246,7 +259,8 @@ public class FluxTimeoutTest {
 	}
 
 	Flux<Integer> scenario_timeoutCanBeBoundWithCallback() {
-		return Flux.<Integer>never().timeout(Duration.ofMillis(500), Flux.just(-5));
+		Mono<Long> delay = Mono.delay(Duration.ofMillis(500));
+		return Flux.<Integer>never().timeout(delay, o -> delay, Flux.just(-5));
 	}
 
 	@Test
@@ -258,8 +272,9 @@ public class FluxTimeoutTest {
 	}
 
 	Flux<?> scenario_timeoutThrown() {
+		Mono<Long> delay = Mono.delay(Duration.ofMillis(500));
 		return Flux.never()
-		           .timeout(Duration.ofMillis(500));
+		           .timeout(delay, o -> delay);
 	}
 
 	@Test
@@ -270,7 +285,8 @@ public class FluxTimeoutTest {
 	}
 
 	Flux<Integer> scenario_timeoutCanBeBoundWithCallback2() {
-		return Flux.<Integer>never().timeout(Duration.ofMillis(500), Flux.just(-5));
+		Mono<Long> delay = Mono.delay(Duration.ofMillis(500));
+		return Flux.<Integer>never().timeout(delay, o -> delay, Flux.just(-5));
 	}
 
 	@Test
@@ -282,8 +298,9 @@ public class FluxTimeoutTest {
 	}
 
 	Flux<?> scenario_timeoutThrown2() {
+		Mono<Long> delay = Mono.delay(Duration.ofMillis(500));
 		return Flux.never()
-		           .timeout(Duration.ofMillis(500));
+		           .timeout(delay, o -> delay);
 	}
 
 	@Test
@@ -294,8 +311,9 @@ public class FluxTimeoutTest {
 	}
 
 	Flux<?> scenario_timeoutThrown3() {
+		Mono<Long> delay = Mono.delay(Duration.ofMillis(500) ,Schedulers.parallel());
 		return Flux.never()
-		           .timeout(Duration.ofMillis(500), Schedulers.parallel());
+		           .timeout(delay, o -> delay);
 	}
 
 	@Test

@@ -32,7 +32,7 @@ import reactor.core.CoreSubscriber;
  * @param <V> the value type for the timeout for the subsequent items
  * @see <a href="https://github.com/reactor/reactive-streams-commons">Reactive-Streams-Commons</a>
  */
-final class MonoTimeout<T, U, V> extends MonoOperator<T, T> {
+final class MonoTimeoutOther<T, U, V> extends MonoOperator<T, T> {
 
 	final Publisher<U> firstTimeout;
 
@@ -41,14 +41,14 @@ final class MonoTimeout<T, U, V> extends MonoOperator<T, T> {
 	@SuppressWarnings("rawtypes")
     final static Function NEVER = e -> Flux.never();
 
-	MonoTimeout(Mono<? extends T> source,
+	MonoTimeoutOther(Mono<? extends T> source,
 			Publisher<U> firstTimeout) {
 		super(source);
 		this.firstTimeout = Objects.requireNonNull(firstTimeout, "firstTimeout");
 		this.other = null;
 	}
 
-	MonoTimeout(Mono<? extends T> source,
+	MonoTimeoutOther(Mono<? extends T> source,
 			Publisher<U> firstTimeout,
 			Publisher<? extends T> other) {
 		super(source);
@@ -62,13 +62,13 @@ final class MonoTimeout<T, U, V> extends MonoOperator<T, T> {
 
 		CoreSubscriber<T> serial = Operators.serialize(s);
 
-		FluxTimeout.TimeoutMainSubscriber<T, V> main =
-				new FluxTimeout.TimeoutMainSubscriber<>(serial, NEVER, other);
+		FluxTimeoutOther.TimeoutMainSubscriber<T, V> main =
+				new FluxTimeoutOther.TimeoutMainSubscriber<>(serial, NEVER, other);
 
 		serial.onSubscribe(main);
 
-		FluxTimeout.TimeoutTimeoutSubscriber ts =
-				new FluxTimeout.TimeoutTimeoutSubscriber(main, 0L);
+		FluxTimeoutOther.TimeoutTimeoutSubscriber ts =
+				new FluxTimeoutOther.TimeoutTimeoutSubscriber(main, 0L);
 
 		main.setTimeout(ts);
 

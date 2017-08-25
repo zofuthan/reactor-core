@@ -6799,13 +6799,10 @@ public abstract class Flux<T> implements Publisher<T> {
 	public final Flux<T> timeout(Duration timeout,
 			@Nullable Publisher<? extends T> fallback,
 			Scheduler timer) {
-		final Mono<Long> _timer = Mono.delay(timeout, timer).onErrorReturn(0L);
-		final Function<T, Publisher<Long>> rest = o -> _timer;
-
 		if(fallback == null) {
-			return timeout(_timer, rest);
+			return onAssembly(new FluxTimeoutTimed<>(this, timeout, timer));
 		}
-		return timeout(_timer, rest, fallback);
+		return onAssembly(new FluxTimeoutTimed<>(this, timeout, timer, fallback));
 	}
 
 	/**
@@ -6848,7 +6845,7 @@ public abstract class Flux<T> implements Publisher<T> {
 	 */
 	public final <U, V> Flux<T> timeout(Publisher<U> firstTimeout,
 			Function<? super T, ? extends Publisher<V>> nextTimeoutFactory) {
-		return onAssembly(new FluxTimeout<>(this, firstTimeout, nextTimeoutFactory));
+		return onAssembly(new FluxTimeoutOther<>(this, firstTimeout, nextTimeoutFactory));
 	}
 
 	/**
@@ -6873,7 +6870,7 @@ public abstract class Flux<T> implements Publisher<T> {
 	public final <U, V> Flux<T> timeout(Publisher<U> firstTimeout,
 			Function<? super T, ? extends Publisher<V>> nextTimeoutFactory, Publisher<? extends T>
 			fallback) {
-		return onAssembly(new FluxTimeout<>(this, firstTimeout, nextTimeoutFactory,
+		return onAssembly(new FluxTimeoutOther<>(this, firstTimeout, nextTimeoutFactory,
 				fallback));
 	}
 

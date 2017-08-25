@@ -37,7 +37,7 @@ import reactor.core.CoreSubscriber;
  *
  * @see <a href="https://github.com/reactor/reactive-streams-commons">Reactive-Streams-Commons</a>
  */
-final class FluxTimeout<T, U, V> extends FluxOperator<T, T> {
+class FluxTimeoutOther<T, U, V> extends FluxOperator<T, T> {
 
 	final Publisher<U> firstTimeout;
 
@@ -45,7 +45,7 @@ final class FluxTimeout<T, U, V> extends FluxOperator<T, T> {
 
 	final Publisher<? extends T> other;
 
-	FluxTimeout(Flux<? extends T> source,
+	FluxTimeoutOther(Flux<? extends T> source,
 			Publisher<U> firstTimeout,
 			Function<? super T, ? extends Publisher<V>> itemTimeout) {
 		super(source);
@@ -54,7 +54,7 @@ final class FluxTimeout<T, U, V> extends FluxOperator<T, T> {
 		this.other = null;
 	}
 
-	FluxTimeout(Flux<? extends T> source,
+	FluxTimeoutOther(Flux<? extends T> source,
 			Publisher<U> firstTimeout,
 			Function<? super T, ? extends Publisher<V>> itemTimeout,
 			Publisher<? extends T> other) {
