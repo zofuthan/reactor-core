@@ -636,6 +636,7 @@ final class DefaultStepVerifierBuilder<T>
 			return this;
 		}
 
+		//TODO use named hooks
 		@Override
 		public Assertions verifyThenAssertThat() {
 			//plug in the correct hooks
@@ -1015,6 +1016,7 @@ final class DefaultStepVerifierBuilder<T>
 			return this;
 		}
 
+		//TODO use named hooks
 		@Override
 		public Assertions verifyThenAssertThat() {
 			//plug in the correct hooks
