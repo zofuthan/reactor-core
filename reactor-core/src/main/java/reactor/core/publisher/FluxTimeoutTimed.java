@@ -32,20 +32,18 @@ import reactor.core.scheduler.Scheduler;
  */
 class FluxTimeoutTimed<T> extends FluxOperator<T, T> {
 
-	static final Disposable NEW_TIMER = Disposable.disposed();
-
 	final Duration timeout;
 	final Scheduler timer;
 	final Publisher<? extends T> fallback;
 
-	public FluxTimeoutTimed(Flux<? extends T> source, Duration timeout, Scheduler timer) {
+	FluxTimeoutTimed(Flux<? extends T> source, Duration timeout, Scheduler timer) {
 		super(source);
 		this.timeout = timeout;
 		this.timer = timer;
 		this.fallback = null;
 	}
 
-	public FluxTimeoutTimed(Flux<? extends T> source, Duration timeout, Scheduler timer,
+	FluxTimeoutTimed(Flux<? extends T> source, Duration timeout, Scheduler timer,
 			Publisher<? extends T> fallback) {
 		super(source);
 		this.timeout = timeout;
@@ -60,7 +58,7 @@ class FluxTimeoutTimed<T> extends FluxOperator<T, T> {
 					new SerializedSubscriber<>(s), // because errors can race
 					timeout, timer.createWorker()));
 		} else {
-			source.subscribe(new TimeoutTimedOtherSubscriber<T>(
+			source.subscribe(new TimeoutTimedOtherSubscriber<>(
 					s, // the FullArbiter serializes
 					timeout, timer.createWorker(), fallback));
 		}
@@ -88,7 +86,7 @@ class FluxTimeoutTimed<T> extends FluxOperator<T, T> {
 			this.timeout = timeout;
 			this.worker = worker;
 			this.fallback = fallback;
-			this.arbiter = new FullArbiter<T>(actual, this, 8);
+			this.arbiter = new FullArbiter<>(actual, this, 8);
 		}
 
 		@Override
@@ -106,6 +104,7 @@ class FluxTimeoutTimed<T> extends FluxOperator<T, T> {
 		@Override
 		public void onNext(T t) {
 			if (done) {
+				Operators.onNextDropped(t);
 				return;
 			}
 			long idx = index + 1;
@@ -123,7 +122,7 @@ class FluxTimeoutTimed<T> extends FluxOperator<T, T> {
 
 		@Override
 		public void request(long l) {
-			//FIXME
+			s.request(l);
 		}
 
 		@Override
@@ -137,7 +136,10 @@ class FluxTimeoutTimed<T> extends FluxOperator<T, T> {
 				timer.dispose();
 			}
 
-			timer = worker.schedule(new TimeoutTask(idx), timeout.toMillis(), TimeUnit.MILLISECONDS);
+			if (!worker.isDisposed()) {
+				timer = worker.schedule(new TimeoutTask(idx), timeout.toMillis(), TimeUnit.MILLISECONDS);
+			}
+			//NO-OP, cancelled downstream
 		}
 
 		void subscribeNext() {
@@ -243,7 +245,10 @@ class FluxTimeoutTimed<T> extends FluxOperator<T, T> {
 				timer.dispose();
 			}
 
-			timer = worker.schedule(new TimeoutTask(idx), timeout.toMillis(), TimeUnit.MILLISECONDS);
+			if (!worker.isDisposed()) {
+				timer = worker.schedule(new TimeoutTask(idx), timeout.toMillis(), TimeUnit.MILLISECONDS);
+			}
+			//NO-OP, cancelled downstream
 		}
 
 		@Override
@@ -306,7 +311,8 @@ class FluxTimeoutTimed<T> extends FluxOperator<T, T> {
 			public void run() {
 				if (idx == index) {
 					done = true;
-					dispose();
+					s.cancel();
+					worker.dispose();
 
 					actual.onError(new TimeoutException());
 				}

@@ -17,7 +17,7 @@ import java.util.Objects;
 import java.util.Queue;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicLongFieldUpdater;
-import java.util.function.BiConsumer;
+import java.util.function.BiPredicate;
 
 import org.reactivestreams.Subscriber;
 import org.reactivestreams.Subscription;
@@ -34,7 +34,7 @@ import reactor.util.concurrent.Queues;
 public final class FullArbiter<T> extends FullArbiterPad2 implements Subscription {
 
 	final Subscriber<? super T>         actual;
-	final BiConsumer<Object, Object>    queue;
+	final BiPredicate<Object, Object>   queue;
 
 	long requested;
 
@@ -51,9 +51,8 @@ public final class FullArbiter<T> extends FullArbiterPad2 implements Subscriptio
 		this.actual = actual;
 		this.resource = resource;
 		Queue<Object> q = Queues.unbounded(capacity).get();
-		assert(q instanceof BiConsumer);
 		//noinspection unchecked
-		this.queue = (BiConsumer<Object, Object>) q;
+		this.queue = (BiPredicate<Object, Object>) q;
 		this.s = INITIAL;
 	}
 
@@ -61,7 +60,7 @@ public final class FullArbiter<T> extends FullArbiterPad2 implements Subscriptio
 	public void request(long n) {
 		if (Operators.validate(n)) {
 			Operators.getAndAddCap(MISSED_REQUESTED, this, n);
-			queue.accept(REQUEST, REQUEST);
+			queue.test(REQUEST, REQUEST);
 			drain();
 		}
 	}
@@ -91,7 +90,7 @@ public final class FullArbiter<T> extends FullArbiterPad2 implements Subscriptio
 		}
 
 		Objects.requireNonNull(s, "s is null");
-		queue.accept(this.s, Signal.subscribe(s));
+		queue.test(this.s, Signal.subscribe(s));
 		drain();
 		return true;
 	}
@@ -101,9 +100,9 @@ public final class FullArbiter<T> extends FullArbiterPad2 implements Subscriptio
 			return false;
 		}
 
-		queue.accept(s, Signal.next(value));
+		queue.test(s, Signal.next(value));
 		drain();
-		return true;
+		return !cancelled;
 	}
 
 	public void onError(Throwable value, Subscription s) {
@@ -111,12 +110,12 @@ public final class FullArbiter<T> extends FullArbiterPad2 implements Subscriptio
 			Operators.onErrorDropped(value);
 			return;
 		}
-		queue.accept(s, Signal.error(value));
+		queue.test(s, Signal.error(value));
 		drain();
 	}
 
 	public void onComplete(Subscription s) {
-		queue.accept(s, Signal.complete());
+		queue.test(s, Signal.complete());
 		drain();
 	}
 

@@ -3525,12 +3525,10 @@ public abstract class Mono<T> implements Publisher<T> {
 	 */
 	public final Mono<T> timeout(Duration timeout, @Nullable Mono<? extends T> fallback,
 			Scheduler timer) {
-		final Mono<Long> _timer = Mono.delay(timeout, timer).onErrorReturn(0L);
-
 		if(fallback == null) {
-			return onAssembly(new MonoTimeoutOther<>(this, _timer));
+			return onAssembly(new MonoTimeoutTimed<>(this, timeout, timer));
 		}
-		return onAssembly(new MonoTimeoutOther<>(this, _timer, fallback));
+		return onAssembly(new MonoTimeoutTimed<>(this, timeout, timer, fallback));
 	}
 
 	/**
