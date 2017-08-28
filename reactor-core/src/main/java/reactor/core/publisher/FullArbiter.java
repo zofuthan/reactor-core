@@ -10,7 +10,15 @@
  * distributed on an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See
  * the License for the specific language governing permissions and limitations under the License.
  */
-
+/*
+ * Modifications have been made to the original code from the RxJava project, mainly to
+ * adapt it to the Reactor classes:
+ *  - use of Reactor utility methods like Operators
+ *  - use of an AtomicLongFieldUpdater rather than an AtomicLong
+ *  - SpscLinkedArrayQueue isn't visible in Reactor -> BiPredicate and casts to Queue
+ *  - Unlike RxJava's NotificationLite, Signal doesn't have static method that work on Object
+ *  - onNext ultimately returns !cancelled after the drain()
+ */
 package reactor.core.publisher;
 
 import java.util.Objects;
@@ -29,9 +37,8 @@ import reactor.util.concurrent.Queues;
  * subscriber are dropped).
  *
  * @param <T> the value type
- * @author David Karnok
  */
-public final class FullArbiter<T> extends FullArbiterPad2 implements Subscription {
+final class FullArbiter<T> extends FullArbiterPad2 implements Subscription {
 
 	final Subscriber<? super T>         actual;
 	final BiPredicate<Object, Object>   queue;

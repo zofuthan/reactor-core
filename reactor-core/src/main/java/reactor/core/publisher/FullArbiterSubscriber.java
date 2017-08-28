@@ -10,7 +10,10 @@
  * distributed on an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See
  * the License for the specific language governing permissions and limitations under the License.
  */
-
+/*
+ * Modifications have been made to the original code from the RxJava project, mainly to
+ * adapt it to the Reactor types.
+ */
 package reactor.core.publisher;
 
 
@@ -22,7 +25,7 @@ import reactor.core.CoreSubscriber;
  *
  * @param <T> the value type
  */
-public final class FullArbiterSubscriber<T> implements CoreSubscriber<T> {
+final class FullArbiterSubscriber<T> implements CoreSubscriber<T> {
 	final FullArbiter<T> arbiter;
 
 	Subscription s;
