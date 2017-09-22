@@ -59,19 +59,24 @@ and its configuration:
 [[processor-overview]]
 = Overview of Available Processors
 Reactor Core comes with several flavors of `Processor`, which are listed below.
-Not all processors have the same semantics, but roughly split into three categories:
+Not all processors have the same semantics, but roughly split into two categories:
 
- - *direct* (`DirectProcessor` and `UnicastProcessor`): these processors can only push data through
- direct user action (calling their `Sink`'s methods directly).
- - *synchronous* (`EmitterProcessor` and `ReplayProcessor`): these processor can push data both
- through user action or by subscribing to an upstream `Publisher` and synchronously
- draining it.
- - *asynchronous* (`WorkQueueProcessor` and `TopicProcessor`): these processors can push data
- obtained from multiple upstream `Publishers`. They are more heavyweight and are backed by
- a `RingBuffer` data structure in order to deal with their multiple upstreams.
-
-The later are most complex to instantiate, with a lot of different options, so they
-expose a `Builder` interface. Simpler processors have static factory methods instead.
+ * *unbounded* (`DirectProcessor`, `UnicastProcessor`, `ReplayProcessor`,
+ `MonoProcessor`): these processors will accept an unbounded volume.
+ ** `DirectProcessor` sends an error signal when a `Subscriber` overflows
+ ** `MonoProcessor` cancels on first signal
+ ** size or time based `ReplayProcessor` will drop old data signals
+ ** arbitrary `ReplayProcessor` and `UnicastProcessor` use unlimited buffering
+ * *bounded* (`EmitterProcessor`, `WorkQueueProcessor` and `TopicProcessor`): these
+ processors have a limited buffering capacity
+ and will request accordingly upstream if subscribed or signal the sink.
+ ** `EmitterProcessor` is a processor version of `Flux.publish()` operator
+ ** `WorkQueueProcessor` and `TopicProcessor` use a thread per subscriber and
+ can push data obtained from multiple threads when created with the `share` factory
+ similarly to the safe `sink()`.
+ They are more heavyweight and are backed by a `RingBuffer` data structure in order to
+ deal with N subscribers backpressure with a single queue instead of N. They expose a
+ `Builder` interface.
 
 == DirectProcessor
 A `DirectProcessor` is a processor that can dispatch signals to zero to many `Subscribers`.
@@ -86,6 +91,9 @@ requested less than N.
 Once the `Processor` has terminated (usually through its `Sink` `error(Throwable)`
 or `complete()` methods being called), it will allow more subscribers to subscribe
 but will simply replay the termination signal to them immediately.
+
+It is a useful processor to signal completion or error e.g. using
+`DirectProcessor<Void>`.
 
 == UnicastProcessor
 A `UnicastProcessor` can deal with backpressure using an internal buffer. The
@@ -102,6 +110,9 @@ from downstream has been received.
 
 In that _bounded_ case, the processor can also be built with a callback that is invoked
 on each rejected element, allowing for cleanup of these rejected elements.
+
+It is a useful processor to forward signals in a controlled fashion like within the
+context of an operator. This is for instance used by `Flux.window`.
 
 == EmitterProcessor
 An `EmitterProcessor` is capable of emitting to several subscribers, while honoring
@@ -182,4 +193,6 @@ number of possible subscribers, preferably do so using a `ThreadPoolExecutor` or
 `ForkJoinPool`: the processor can detect their capacity and throw an exception if you
 subscribe one too many times.
 
-//TODO == MonoProcessor
+== MonoProcessor
+A simple processor to capture the first signal and replays it at wish. It is a `Mono`
+as only signal can apply.
