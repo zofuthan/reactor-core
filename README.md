@@ -27,8 +27,8 @@ With Gradle from repo.spring.io or Maven Central repositories (stable releases o
     dependencies {
       //compile "io.projectreactor:reactor-core:3.1.0.BUILD-SNAPSHOT"
       //testCompile("io.projectreactor:reactor-test:BUILD-SNAPSHOT")
-      compile "io.projectreactor:reactor-core:3.1.0.RC1"
-      testCompile("io.projectreactor:reactor-test:3.1.0.RC1")
+      compile "io.projectreactor:reactor-core:3.1.0.RC2"
+      testCompile("io.projectreactor:reactor-test:3.1.0.RC2")
     }
 ```
 
