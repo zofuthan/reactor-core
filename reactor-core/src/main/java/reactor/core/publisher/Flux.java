@@ -3488,7 +3488,7 @@ public abstract class Flux<T> implements Publisher<T> {
 	 * @see #materialize()
 	 * @see Signal
 	 */
-	public final Flux<T> doOnEach(Consumer<? super Signal<T>> signalConsumer) {
+	public final Flux<T> doOnEach(Consumer<? super SignalWithContext<T>> signalConsumer) {
 		return onAssembly(new FluxDoOnEach<>(this, signalConsumer));
 	}
 

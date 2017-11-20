@@ -23,6 +23,7 @@ import org.reactivestreams.Subscription;
 import reactor.core.CoreSubscriber;
 import reactor.core.Exceptions;
 import reactor.util.annotation.Nullable;
+import reactor.util.context.Context;
 
 /**
  * Peek into the lifecycle events and signals of a sequence
@@ -33,9 +34,9 @@ import reactor.util.annotation.Nullable;
  */
 final class FluxDoOnEach<T> extends FluxOperator<T, T> {
 
-	final Consumer<? super Signal<T>> onSignal;
+	final Consumer<? super SignalWithContext<T>> onSignal;
 
-	FluxDoOnEach(Flux<? extends T> source, Consumer<? super Signal<T>> onSignal) {
+	FluxDoOnEach(Flux<? extends T> source, Consumer<? super SignalWithContext<T>> onSignal) {
 		super(source);
 		this.onSignal = Objects.requireNonNull(onSignal, "onSignal");
 	}
@@ -47,11 +48,12 @@ final class FluxDoOnEach<T> extends FluxOperator<T, T> {
 		source.subscribe(new DoOnEachSubscriber<>(actual, onSignal));
 	}
 
-	static final class DoOnEachSubscriber<T> implements InnerOperator<T, T>, Signal<T> {
+	static final class DoOnEachSubscriber<T>
+			implements InnerOperator<T, T>, SignalWithContext<T> {
 
 		final CoreSubscriber<? super T> actual;
 
-		final Consumer<? super Signal<T>> onSignal;
+		final Consumer<? super SignalWithContext<T>> onSignal;
 
 		T t;
 
@@ -60,7 +62,7 @@ final class FluxDoOnEach<T> extends FluxOperator<T, T> {
 		boolean done;
 
 		DoOnEachSubscriber(CoreSubscriber<? super T> actual,
-				Consumer<? super Signal<T>> onSignal) {
+				Consumer<? super SignalWithContext<T>> onSignal) {
 			this.actual = actual;
 			this.onSignal = onSignal;
 		}
@@ -121,8 +123,39 @@ final class FluxDoOnEach<T> extends FluxOperator<T, T> {
 			}
 			done = true;
 			try {
+				final Throwable tCapture = t;
 				//noinspection ConstantConditions
-				onSignal.accept(Signal.error(t));
+				onSignal.accept(new SignalWithContext<T>() {
+					@Override
+					public Throwable getThrowable() {
+						return tCapture;
+					}
+
+					@Override
+					public Subscription getSubscription() {
+						return null;
+					}
+
+					@Override
+					public T get() {
+						return null;
+					}
+
+					@Override
+					public SignalType getType() {
+						return SignalType.ON_ERROR;
+					}
+
+					@Override
+					public boolean isOnError() {
+						return true;
+					}
+
+					@Override
+					public Context getContext() {
+						return currentContext();
+					}
+				});
 			}
 			catch (Throwable e) {
 				//this performs a throwIfFatal or suppresses t in e
@@ -148,7 +181,37 @@ final class FluxDoOnEach<T> extends FluxOperator<T, T> {
 			done = true;
 			try {
 				//noinspection ConstantConditions
-				onSignal.accept(Signal.complete());
+				onSignal.accept(new SignalWithContext<T>() {
+					@Override
+					public Context getContext() {
+						return currentContext();
+					}
+
+					@Override
+					public Throwable getThrowable() {
+						return null;
+					}
+
+					@Override
+					public Subscription getSubscription() {
+						return null;
+					}
+
+					@Override
+					public T get() {
+						return null;
+					}
+
+					@Override
+					public SignalType getType() {
+						return SignalType.ON_COMPLETE;
+					}
+
+					@Override
+					public boolean isOnComplete() {
+						return true;
+					}
+				});
 			}
 			catch (Throwable e) {
 				done = false;
@@ -185,6 +248,11 @@ final class FluxDoOnEach<T> extends FluxOperator<T, T> {
 		@Override
 		public SignalType getType() {
 			return SignalType.ON_NEXT;
+		}
+
+		@Override
+		public Context getContext() {
+			return currentContext();
 		}
 	}
 }
