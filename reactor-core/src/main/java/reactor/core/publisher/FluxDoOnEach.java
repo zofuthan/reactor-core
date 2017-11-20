@@ -125,6 +125,7 @@ final class FluxDoOnEach<T> extends FluxOperator<T, T> {
 			try {
 				final Throwable tCapture = t;
 				//noinspection ConstantConditions
+				//TODO replace with an inner implementation?
 				onSignal.accept(new SignalWithContext<T>() {
 					@Override
 					public Throwable getThrowable() {
@@ -181,6 +182,7 @@ final class FluxDoOnEach<T> extends FluxOperator<T, T> {
 			done = true;
 			try {
 				//noinspection ConstantConditions
+				//TODO replace with an inner implementation?
 				onSignal.accept(new SignalWithContext<T>() {
 					@Override
 					public Context getContext() {
