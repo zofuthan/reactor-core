@@ -104,7 +104,6 @@ final class FluxDoOnEach<T> extends FluxOperator<T, T> {
 			}
 			try {
 				this.t = t;
-				//noinspection ConstantConditions
 				onSignal.accept(this);
 			}
 			catch (Throwable e) {
@@ -123,40 +122,7 @@ final class FluxDoOnEach<T> extends FluxOperator<T, T> {
 			}
 			done = true;
 			try {
-				final Throwable tCapture = t;
-				//noinspection ConstantConditions
-				//TODO replace with an inner implementation?
-				onSignal.accept(new SignalWithContext<T>() {
-					@Override
-					public Throwable getThrowable() {
-						return tCapture;
-					}
-
-					@Override
-					public Subscription getSubscription() {
-						return null;
-					}
-
-					@Override
-					public T get() {
-						return null;
-					}
-
-					@Override
-					public SignalType getType() {
-						return SignalType.ON_ERROR;
-					}
-
-					@Override
-					public boolean isOnError() {
-						return true;
-					}
-
-					@Override
-					public Context getContext() {
-						return currentContext();
-					}
-				});
+				onSignal.accept(new ErrorWithContext<>(t, currentContext()) );
 			}
 			catch (Throwable e) {
 				//this performs a throwIfFatal or suppresses t in e
@@ -181,39 +147,7 @@ final class FluxDoOnEach<T> extends FluxOperator<T, T> {
 			}
 			done = true;
 			try {
-				//noinspection ConstantConditions
-				//TODO replace with an inner implementation?
-				onSignal.accept(new SignalWithContext<T>() {
-					@Override
-					public Context getContext() {
-						return currentContext();
-					}
-
-					@Override
-					public Throwable getThrowable() {
-						return null;
-					}
-
-					@Override
-					public Subscription getSubscription() {
-						return null;
-					}
-
-					@Override
-					public T get() {
-						return null;
-					}
-
-					@Override
-					public SignalType getType() {
-						return SignalType.ON_COMPLETE;
-					}
-
-					@Override
-					public boolean isOnComplete() {
-						return true;
-					}
-				});
+				onSignal.accept(new CompleteWithContext<>(currentContext()));
 			}
 			catch (Throwable e) {
 				done = false;
@@ -257,4 +191,85 @@ final class FluxDoOnEach<T> extends FluxOperator<T, T> {
 			return currentContext();
 		}
 	}
+
+	static class ErrorWithContext<T> implements SignalWithContext<T> {
+
+		private final Throwable error;
+		private final Context context;
+
+		public ErrorWithContext(Throwable t, Context context) {
+			this.context = context;
+			this.error = t;
+		}
+
+		@Override
+		public Throwable getThrowable() {
+			return this.error;
+		}
+
+		@Override
+		public Subscription getSubscription() {
+			return null;
+		}
+
+		@Override
+		public T get() {
+			return null;
+		}
+
+		@Override
+		public SignalType getType() {
+			return SignalType.ON_ERROR;
+		}
+
+		@Override
+		public boolean isOnError() {
+			return true;
+		}
+
+		@Override
+		public Context getContext() {
+			return this.context;
+		}
+	}
+
+	static class CompleteWithContext<T> implements SignalWithContext<T> {
+
+		private final Context context;
+
+		CompleteWithContext(Context context) {
+			this.context = context;
+		}
+
+		@Override
+		public Context getContext() {
+			return this.context;
+		}
+
+		@Override
+		public Throwable getThrowable() {
+			return null;
+		}
+
+		@Override
+		public Subscription getSubscription() {
+			return null;
+		}
+
+		@Override
+		public T get() {
+			return null;
+		}
+
+		@Override
+		public SignalType getType() {
+			return SignalType.ON_COMPLETE;
+		}
+
+		@Override
+		public boolean isOnComplete() {
+			return true;
+		}
+	}
+
 }

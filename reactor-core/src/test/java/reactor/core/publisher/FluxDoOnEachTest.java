@@ -16,6 +16,9 @@
 
 package reactor.core.publisher;
 
+import java.awt.peer.ChoicePeer;
+import java.util.ArrayList;
+import java.util.List;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.concurrent.atomic.LongAdder;
@@ -28,6 +31,7 @@ import reactor.core.CoreSubscriber;
 import reactor.core.Exceptions;
 import reactor.core.Scannable;
 import reactor.test.subscriber.AssertSubscriber;
+import reactor.util.context.Context;
 
 import static org.junit.Assert.fail;
 
@@ -266,5 +270,46 @@ public class FluxDoOnEachTest {
         Assertions.assertThat(test.scan(Scannable.Attr.TERMINATED)).isFalse();
         test.onError(new IllegalStateException("boom"));
         Assertions.assertThat(test.scan(Scannable.Attr.TERMINATED)).isTrue();
+    }
+
+    @Test
+	public void nextCompleteWithContext() {
+	    List<SignalWithContext> signals = new ArrayList<>();
+		Flux.just(1, 2)
+		    .doOnEach(signals::add)
+		    .subscriberContext(Context.of("foo", "bar"))
+		    .subscribe();
+
+	    Assertions.assertThat(signals)
+	              .allSatisfy(sig -> {
+		              Assertions.assertThat(sig)
+		                        .isNotNull();
+		              Assertions.assertThat(sig.getContext().getOrDefault("foo", "baz"))
+		                        .isEqualTo("bar");
+	              });
+
+	    Assertions.assertThat(signals.stream().map(SignalWithContext::getType))
+	              .containsExactly(SignalType.ON_NEXT, SignalType.ON_NEXT, SignalType.ON_COMPLETE);
+    }
+
+    @Test
+	public void nextErrorWithContext() {
+	    List<SignalWithContext> signals = new ArrayList<>();
+	    Flux.just(1, 0)
+	        .map(i -> 10 / i)
+	        .doOnEach(signals::add)
+	        .subscriberContext(Context.of("foo", "bar"))
+	        .subscribe();
+
+	    Assertions.assertThat(signals)
+	              .allSatisfy(sig -> {
+		              Assertions.assertThat(sig)
+		                        .isNotNull();
+		              Assertions.assertThat(sig.getContext().getOrDefault("foo", "baz"))
+		                        .isEqualTo("bar");
+	              });
+
+	    Assertions.assertThat(signals.stream().map(SignalWithContext::getType))
+	              .containsExactly(SignalType.ON_NEXT, SignalType.ON_ERROR);
     }
 }
