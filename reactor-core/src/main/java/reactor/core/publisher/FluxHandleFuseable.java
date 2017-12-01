@@ -319,11 +319,17 @@ final class FluxHandleFuseable<T, R> extends FluxOperator<T, R> implements Fusea
 
 		@Override
 		public void complete() {
+			if (stop) {
+				throw new IllegalStateException("Cannot complete after a complete or error");
+			}
 			stop = true;
 		}
 
 		@Override
 		public void error(Throwable e) {
+			if (stop) {
+				throw new IllegalStateException("Cannot error after a complete or error");
+			}
 			error = Objects.requireNonNull(e, "error");
 			stop = true;
 		}
@@ -474,11 +480,17 @@ final class FluxHandleFuseable<T, R> extends FluxOperator<T, R> implements Fusea
 
 		@Override
 		public void complete() {
+			if (stop) {
+				throw new IllegalStateException("Cannot complete after a complete or error");
+			}
 			stop = true;
 		}
 
 		@Override
 		public void error(Throwable e) {
+			if (stop) {
+				throw new IllegalStateException("Cannot error after a complete or error");
+			}
 			error = Objects.requireNonNull(e, "error");
 			stop = true;
 		}
