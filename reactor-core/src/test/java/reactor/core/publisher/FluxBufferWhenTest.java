@@ -21,7 +21,11 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
+import java.util.concurrent.CountDownLatch;
+import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.LongAdder;
 
+import org.assertj.core.api.Condition;
 import org.junit.Assert;
 import org.junit.Test;
 import org.reactivestreams.Subscription;
@@ -30,10 +34,79 @@ import reactor.core.Scannable;
 import reactor.test.StepVerifier;
 import reactor.test.subscriber.AssertSubscriber;
 import reactor.util.concurrent.Queues;
+import reactor.util.function.Tuple3;
+import reactor.util.function.Tuples;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
 public class FluxBufferWhenTest {
+
+	@Test
+	public void gh969() throws InterruptedException {
+		LongAdder created = new LongAdder();
+		LongAdder finalized = new LongAdder();
+		class Wrapper {
+
+			final int i;
+
+			Wrapper(int i) {
+				created.increment();
+				this.i = i;
+			}
+
+			@Override
+			public String toString() {
+				return "{i=" + i + '}';
+			}
+
+			@Override
+			protected void finalize() {
+				finalized.increment();
+			}
+		}
+
+		final CountDownLatch latch = new CountDownLatch(1);
+		final UnicastProcessor<Wrapper> processor = UnicastProcessor.create();
+
+		Flux<Integer> emitter = Flux.range(1, 800)
+		                            .delayElements(Duration.ofMillis(10))
+		                            .doOnNext(i -> processor.onNext(new Wrapper(i)))
+		                            .doOnComplete(processor::onComplete);
+
+		Mono<List<Tuple3<Long, Long, Long>>> buffers =
+				processor.buffer(Duration.ofMillis(1000), Duration.ofMillis(500))
+				         .filter(b -> b.size() > 0)
+				         .index()
+				         //index, bounds of buffer, previously finalized
+				         .map(t2 -> Tuples.of(t2.getT1(),
+						         String.format("from %s to %s", t2.getT2().get(0),
+								         t2.getT2().get(t2.getT2().size() - 1)),
+						         finalized.longValue()))
+				         .doOnNext(it -> System.gc())
+				         .doOnNext(System.out::println)
+				         //index, previously finalized, now finalized
+                         .map(t3 -> Tuples.of(t3.getT1(), t3.getT3(), finalized.longValue()))
+                         .doOnComplete(latch::countDown)
+                         .collectList();
+
+		emitter.subscribe();
+		List<Tuple3<Long, Long, Long>> finalizeStats = buffers.block();
+
+		Condition<? super Tuple3<Long, Long, Long>> hasFinalized = new Condition<>(
+				t3 -> t3.getT3() > t3.getT2(), "has finalized");
+
+		//at least 5 intermediate finalize
+		assertThat(finalizeStats).areAtLeast(5, hasFinalized);
+
+		latch.await(10, TimeUnit.SECONDS);
+		System.out.println("final GC");
+		System.gc();
+		Thread.sleep(500);
+
+		assertThat(finalized.longValue())
+				.as("final GC collects all")
+				.isEqualTo(created.longValue());
+	}
 
 	@Test
 	public void normal() {

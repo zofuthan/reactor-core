@@ -389,6 +389,7 @@ final class FluxBufferWhen<T, U, V, C extends Collection<? super T>>
 					return;
 				}
 
+				endSubscriptions.remove(ender);
 				if (set.remove(ender.index) == null) {
 					return;
 				}
