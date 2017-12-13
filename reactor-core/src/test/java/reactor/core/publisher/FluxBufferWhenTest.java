@@ -73,27 +73,25 @@ public class FluxBufferWhenTest {
 		                            .doOnNext(i -> processor.onNext(new Wrapper(i)))
 		                            .doOnComplete(processor::onComplete);
 
-		Mono<List<Tuple3<Long, Long, Long>>> buffers =
+		Mono<List<Tuple3<Long, String, Long>>> buffers =
 				processor.buffer(Duration.ofMillis(1000), Duration.ofMillis(500))
 				         .filter(b -> b.size() > 0)
 				         .index()
-				         //index, bounds of buffer, previously finalized
+				         .doOnNext(it -> System.gc())
+				         //index, bounds of buffer, finalized
 				         .map(t2 -> Tuples.of(t2.getT1(),
 						         String.format("from %s to %s", t2.getT2().get(0),
 								         t2.getT2().get(t2.getT2().size() - 1)),
 						         finalized.longValue()))
-				         .doOnNext(it -> System.gc())
 				         .doOnNext(System.out::println)
-				         //index, previously finalized, now finalized
-                         .map(t3 -> Tuples.of(t3.getT1(), t3.getT3(), finalized.longValue()))
                          .doOnComplete(latch::countDown)
                          .collectList();
 
 		emitter.subscribe();
-		List<Tuple3<Long, Long, Long>> finalizeStats = buffers.block();
+		List<Tuple3<Long, String, Long>> finalizeStats = buffers.block();
 
-		Condition<? super Tuple3<Long, Long, Long>> hasFinalized = new Condition<>(
-				t3 -> t3.getT3() > t3.getT2(), "has finalized");
+		Condition<? super Tuple3<Long, String, Long>> hasFinalized = new Condition<>(
+				t3 -> t3.getT3() > 0, "has finalized");
 
 		//at least 5 intermediate finalize
 		assertThat(finalizeStats).areAtLeast(5, hasFinalized);
