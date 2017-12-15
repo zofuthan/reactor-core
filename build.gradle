@@ -343,9 +343,12 @@ project('reactor-core') {
   }
 
   task testNG(type: Test, group: 'verification') {
+	useTestNG() {
+	  parallel = 'instances'
+	}
+
 	includes.clear()
 	include '**/*Verification.*'
-	useTestNG()
 	doFirst {
 	  println "Additional tests from `testNG` ($includes)"
 	}
