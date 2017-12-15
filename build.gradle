@@ -334,15 +334,21 @@ project('reactor-core') {
 	from("${project.buildDir}/docs/kdoc")
   }
 
-  task loops(type: Test) {
-	exclude '**/*'
+  task loops(type: Test, group: 'verification') {
+	includes.clear()
 	include '**/*Loop.*'
+	doFirst {
+	  println "Additional tests from `loops` ($includes)"
+	}
   }
 
-  task testNG(type: Test) {
-	exclude '**/*'
+  task testNG(type: Test, group: 'verification') {
+	includes.clear()
 	include '**/*Verification.*'
 	useTestNG()
+	doFirst {
+	  println "Additional tests from `testNG` ($includes)"
+	}
   }
 
   sourceSets.test.resources.srcDirs = ["src/test/resources", "src/test/java"]
@@ -369,6 +375,7 @@ project('reactor-core') {
 	  archives kdocZip
   }
 
+  test.dependsOn testStaticInit
   jacocoTestReport.dependsOn testNG
   check.dependsOn jacocoTestReport
   jar.finalizedBy(japicmp)
